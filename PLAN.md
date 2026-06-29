@@ -40,9 +40,10 @@
 2. **Multi-user через Auth + RLS.** Кожен юзер має `user_id`; Row Level Security пускає
    до рядка лише власника. 1 база — кожен бачить лише свої слова. (Саме тому Supabase,
    а не localStorage.)
-3. **`status` замість видалення.** Слово не видаляємо, а ставимо `new | learning | learned`.
-   Зберігає історію та дає змогу робити повторення (spaced repetition). Hard-delete
-   додамо за потреби пізніше.
+3. **`status` як основа + ручне керування.** Слово має статус `new | learning | learned`
+   (історія + база для повторень). Користувач може **міняти статус вручну** і **видаляти**
+   слово (hard-delete; RLS delete-політика вже є). Тобто статус — основний механізм, але
+   видалення теж підтримуємо.
 4. **API-ключ ніколи не у фронтенді.** OpenAI/Claude викликаємо через Supabase Edge
    Function (проксі), щоб ключ лишався на сервері. (Фаза 2.)
 5. **`anon key` — публічний за задумом.** Його кладемо у фронтенд (через `VITE_`-env),
@@ -54,16 +55,22 @@
 
 ```sql
 create table public.words (
-  id          uuid primary key default gen_random_uuid(),
-  user_id     uuid not null default auth.uid()
-              references auth.users(id) on delete cascade,
-  term        text not null,
-  ipa         text,
-  audio_url   text,
-  definitions jsonb not null default '[]'::jsonb,
-  status      text not null default 'new'
-              check (status in ('new','learning','learned')),
-  created_at  timestamptz not null default now(),
+  id               uuid primary key default gen_random_uuid(),
+  user_id          uuid not null default auth.uid()
+                   references auth.users(id) on delete cascade,
+  term             text not null,
+  ipa              text,
+  audio_url        text,
+  definitions      jsonb not null default '[]'::jsonb,
+  status           text not null default 'new'
+                   check (status in ('new','learning','learned')),
+  -- розклад повторень (Leitner); заповнюється під час тренувань (Фаза 3)
+  box              smallint not null default 0,
+  last_reviewed_at timestamptz,
+  next_review_at   timestamptz,            -- null = не заплановано; <= now() => "повторити"
+  times_seen       integer not null default 0,
+  times_correct    integer not null default 0,
+  created_at       timestamptz not null default now(),
 
   unique (user_id, term)
 );
@@ -81,6 +88,9 @@ create policy "update own words" on public.words
 
 create policy "delete own words" on public.words
   for delete using (auth.uid() = user_id);
+
+-- швидкі вибірки "що повторити" та сортування
+create index words_user_due_idx on public.words (user_id, next_review_at);
 ```
 
 Поля коротко:
@@ -91,7 +101,12 @@ create policy "delete own words" on public.words
 - `ipa`, `audio_url` — транскрипція + mp3 (nullable — не для кожного слова є).
 - `definitions` — **JSONB**: вкладена структура з Dictionary API
   (частини мови → визначення → приклади).
-- `status` — `new | learning | learned` (захист `check` на рівні БД).
+- `status` — `new | learning | learned` (захист `check` на рівні БД). **Групування** у UI —
+  саме за статусом (вкладки), без ручних тегів/колод.
+- `box`, `last_reviewed_at`, `next_review_at`, `times_seen`, `times_correct` — поля
+  **розкладу повторень** (Leitner). Додані наперед, щоб не мігрувати під тренування (Фаза 3).
+  Вкладка **«Повторити»** — *похідна*: слова, де `next_review_at <= now()`. Тобто слово не
+  живе вічно в «повторити» — воно стає due → ти його повторюєш → повертається в learning/learned.
 - `created_at` — для сортування й повторень.
 - `unique (user_id, term)` — одне слово на юзера не двічі. Захист на рівні **БД**, а не в
   JS → немає **race condition** від подвійного кліку.
@@ -105,14 +120,16 @@ create policy "delete own words" on public.words
 
 ```
 ввід слова
-  → (debounce) lookup у dictionaryapi.dev
+  → lookup у dictionaryapi.dev (на сабміт: Enter / кнопка)
   → картка-прев'ю (IPA, 🔊, визначення, приклади)
   → кнопка «Додати»
   → запис у Supabase (words)
   → показ у списку «Мої слова»
 ```
 
-Розділяємо **«прев'ю»** і **«зберегти»**. Не зберігаємо на кожну натиснуту літеру.
+Розділяємо **«прев'ю»** і **«зберегти»**. Lookup робимо **на сабміт, а не live-debounce**:
+dictionaryapi.dev матчить ціле слово (не префікс), тож запити по неповних словах давали б
+переважно 404 і марний трафік.
 
 ---
 
@@ -122,21 +139,26 @@ create policy "delete own words" on public.words
 
 - [x] Рішення по стеку, базі та моделі даних
 - [x] Створити репозиторій + цей план
-- [ ] Створити Supabase-проєкт + застосувати схему `words` + RLS
-- [ ] Зскафолдити React + Vite + TS застосунок
-- [ ] Підключити `@supabase/supabase-js` (клієнт + env)
-- [ ] Auth: реєстрація / вхід (Supabase Auth)
-- [ ] Екран пошуку: ввід → dictionaryapi.dev → прев'ю-картка
-- [ ] Кнопка «Додати» → запис у `words`
-- [ ] Список «Мої слова» (з кнопкою аудіо)
-- [ ] Адаптив (mobile-first)
+- [x] Зскафолдити React + Vite + TS застосунок
+- [x] Підключити `@supabase/supabase-js` (клієнт + env)
+- [x] Auth: реєстрація / вхід (Supabase Auth)
+- [x] Екран пошуку: ввід → dictionaryapi.dev → прев'ю-картка
+- [x] Кнопка «Додати» → запис у `words`
+- [x] Список «Мої слова» (аудіо, зміна статусу, видалення, вкладки-фільтри)
+- [x] Адаптив (mobile-first) — базова гумова сітка; детальний дизайн пізніше через Claude design
+- [ ] **Створити Supabase-проєкт + застосувати схему `words` + RLS** ← ручний крок користувача;
+      без нього код є, але runtime (auth/збереження) не запрацює
 - [ ] Деплой на GitHub Pages
 
-### Фаза 2 — AI-збагачення
+### Фаза 2 — Збагачення
 
-- [ ] Edge Function-проксі до OpenAI/Claude (ключ на сервері)
+> **Обмеження: усе має лишатися безкоштовним.** Платний LLM (OpenAI/Claude за токени +
+> картка) — неприйнятно. Рішення відкладено; повернемось перед стартом фази.
+> Безкоштовні варіанти без картки: синоніми/приклади зі словника, [Datamuse API](https://www.datamuse.com/api/)
+> (колокації, схожі слова), або free-tier LLM (напр. Google Gemini) — лише якщо влаштує.
+
+- [ ] Обрати безкоштовне джерело збагачення (без LLM / free-tier LLM)
 - [ ] Приклади, пояснення, колокації, поради при додаванні слова
-- [ ] (платне місце — токени LLM, потрібна картка)
 
 ### Фаза 3 — Тренування
 
@@ -151,7 +173,8 @@ create policy "delete own words" on public.words
 - **Supabase Free:** ~500 MB БД, ~50k користувачів, без картки. Проєкт «засинає» після
   ~7 днів простою → кнопка **Restore**, дані не зникають.
 - **Фаза 1 = $0** (Supabase + dictionaryapi.dev).
-- Гроші з'являються лише у **Фазі 2** (OpenAI/Claude за токени — копійки, але потрібна картка).
+- **Вимога: $0 і далі.** Фаза 2 (збагачення) — лише безкоштовні джерела; платний LLM
+  відкладено/під питанням (див. Фаза 2).
 
 ---
 

@@ -41,6 +41,20 @@ npx supabase functions deploy translate --no-verify-jwt
 `--no-verify-jwt` lets the function handle CORS and do its own auth check; it is
 still protected by the `getUser()` gate inside.
 
+## Accounts: registration is closed by design
+
+There is **no public sign-up** — only sign-in. This is intentional, not an
+oversight:
+
+- **It's a personal app** for me and a few friends, not a public product.
+- **It protects the Gemini free-tier quota.** The translation function is gated
+  to signed-in users; if anyone could register, anyone could burn the daily
+  quota. With open registration off, only accounts I create can call it.
+
+New users are added by hand in the Supabase dashboard (Authentication → Users).
+Disabling sign-up is done at the source (Supabase Auth settings) — hiding the UI
+alone wouldn't stop a direct API call, so the real switch is server-side.
+
 ## Roadmap & decisions
 
 See **[PLAN.md](./PLAN.md)** (Ukrainian) for the full roadmap, data model and the

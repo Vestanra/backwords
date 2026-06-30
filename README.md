@@ -1,4 +1,4 @@
-# word-nest 🪺
+# BackWords 🪺
 
 A web app for learning English vocabulary. Type a word → get its pronunciation
 (IPA + audio), definitions and example sentences (Cambridge-style) → save it to your
@@ -18,13 +18,14 @@ reasoning behind each architectural decision.
 
 ## Local development
 
-> The Vite app is not scaffolded yet — this section applies once it is.
-
 ```bash
 npm install
 cp .env.example .env.local   # then fill in your Supabase URL + anon key
-npm run dev
+npm run dev                  # http://localhost:5173/backwords/
 ```
+
+Other scripts: `npm run build` (type-check + production build), `npm run preview`
+(serve the build locally), `npm run lint`.
 
 ## Environment variables
 

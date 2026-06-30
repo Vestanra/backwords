@@ -15,7 +15,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-const MODEL = 'gemini-2.5-flash-lite'
+const MODEL = 'gemini-3.1-flash-lite'
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`
 
 function json(body: unknown, status = 200): Response {

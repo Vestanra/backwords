@@ -59,7 +59,7 @@ export function WordsScreen() {
   return (
     <main className={styles.app}>
       <header className={styles.header}>
-        <h1 className={styles.title}>word-nest 🪺</h1>
+        <h1 className={styles.title}>BackWords 🪺</h1>
         <div className={styles.account}>
           <span className={styles.email}>{user?.email}</span>
           <button type="button" onClick={() => signOut()}>

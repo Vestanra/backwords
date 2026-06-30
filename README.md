@@ -1,4 +1,4 @@
-# BackWords 🪺
+# BackWords
 
 A web app for learning English vocabulary. Type a word → get its pronunciation
 (IPA + audio), definitions and example sentences (Cambridge-style) → save it to your

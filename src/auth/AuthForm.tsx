@@ -36,7 +36,7 @@ export function AuthForm() {
 
   return (
     <main className={styles.wrap}>
-      <h1 className={styles.title}>BackWords 🪺</h1>
+      <h1 className={styles.title}>BackWords</h1>
       <form className={styles.form} onSubmit={handleSubmit}>
         <label className={styles.label}>
           Email

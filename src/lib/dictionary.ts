@@ -23,6 +23,25 @@ interface RawEntry {
 
 const API_BASE = 'https://api.dictionaryapi.dev/api/v2/entries/en'
 
+// Cap how many definitions we keep. The dictionary can return a dozen senses
+// (e.g. "pass out" → 6); a few are enough to understand the word and confirm
+// the translation, and the saved list shows only the first anyway.
+const MAX_DEFINITIONS = 3
+
+/** Keep at most MAX_DEFINITIONS definitions in total, preserving grouping. */
+function trimMeanings(meanings: Meaning[]): Meaning[] {
+  let remaining = MAX_DEFINITIONS
+  const trimmed: Meaning[] = []
+  for (const m of meanings) {
+    if (remaining <= 0) break
+    const definitions = m.definitions.slice(0, remaining)
+    if (definitions.length === 0) continue
+    trimmed.push({ ...m, definitions })
+    remaining -= definitions.length
+  }
+  return trimmed
+}
+
 /** lowercase + collapse internal/edge whitespace. Matches how we store `term`. */
 export function normalizeTerm(raw: string): string {
   return raw.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -56,7 +75,9 @@ function toPreview(term: string, entries: RawEntry[]): WordPreview {
     }
   }
 
-  return { term, ipa, audioUrl, meanings }
+  // translation/note are filled in by the caller (translate() runs after lookup
+  // and the user edits them before saving).
+  return { term, ipa, audioUrl, meanings: trimMeanings(meanings), translation: null, note: null }
 }
 
 /**

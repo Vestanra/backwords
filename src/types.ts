@@ -23,6 +23,10 @@ export interface WordPreview {
   ipa: string | null
   audioUrl: string | null
   meanings: Meaning[]
+  /** Auto-suggested translation (e.g. uk); the user can edit before saving. */
+  translation: string | null
+  /** Free-form personal note the user adds when saving. */
+  note: string | null
 }
 
 /** A row of `public.words`. `definitions` stores the normalized `Meaning[]`. */
@@ -33,6 +37,8 @@ export interface Word {
   ipa: string | null
   audio_url: string | null
   definitions: Meaning[]
+  translation: string | null
+  note: string | null
   status: WordStatus
   box: number
   last_reviewed_at: string | null

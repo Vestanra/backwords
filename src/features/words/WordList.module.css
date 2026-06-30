@@ -68,10 +68,22 @@
   font-size: 0.9rem;
 }
 
+.translation {
+  margin: 0.25rem 0 0;
+  font-size: 0.95rem;
+}
+
 .def {
   margin: 0.25rem 0 0;
   color: var(--color-muted);
   font-size: 0.9rem;
+}
+
+.note {
+  margin: 0.25rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  font-style: italic;
 }
 
 .actions {
@@ -89,11 +101,47 @@
   border: 1px solid var(--color-muted);
 }
 
-.delete {
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem;
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 1rem;
+  color: var(--color-muted);
+}
+
+.icon:hover:not(:disabled) {
+  color: inherit;
+}
+
+.icon:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.editForm input,
+.editForm textarea {
+  padding: 0.4rem 0.5rem;
+  font: inherit;
+  border: 1px solid var(--color-muted);
+  border-radius: 0.4rem;
+  background: transparent;
+  color: inherit;
+  resize: vertical;
+}
+
+.editActions {
+  display: flex;
+  gap: 0.4rem;
 }
 
 .muted {

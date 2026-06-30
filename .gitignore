@@ -23,5 +23,8 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
+# Supabase CLI local state (link cache) — not the function source
+supabase/.temp/
+
 # Misc
 *.local

@@ -3,32 +3,23 @@ import type { FormEvent } from 'react'
 import { useAuth } from './auth-context'
 import styles from './AuthForm.module.css'
 
-type Mode = 'signin' | 'signup'
-
+// Sign-in only. Registration is closed (Supabase Auth → sign-ups OFF); accounts
+// are created by hand for the few people who use this. Hiding the UI is only
+// cosmetic — the real gate is the Supabase setting.
 export function AuthForm() {
-  const { signIn, signUp } = useAuth()
-  const [mode, setMode] = useState<Mode>('signin')
+  const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    setNotice(null)
     setBusy(true)
     try {
-      if (mode === 'signup') {
-        const { error, needsConfirmation } = await signUp(email, password)
-        if (error) setError(error)
-        else if (needsConfirmation)
-          setNotice('Check your email to confirm your account, then sign in.')
-      } else {
-        const { error } = await signIn(email, password)
-        if (error) setError(error)
-      }
+      const { error } = await signIn(email, password)
+      if (error) setError(error)
     } finally {
       setBusy(false)
     }
@@ -54,33 +45,18 @@ export function AuthForm() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+            autoComplete="current-password"
             minLength={6}
             required
           />
         </label>
 
         {error && <p className={styles.error}>{error}</p>}
-        {notice && <p className={styles.notice}>{notice}</p>}
 
         <button type="submit" disabled={busy}>
-          {busy ? '…' : mode === 'signup' ? 'Sign up' : 'Sign in'}
+          {busy ? '…' : 'Sign in'}
         </button>
       </form>
-
-      <button
-        type="button"
-        className={styles.toggle}
-        onClick={() => {
-          setMode((m) => (m === 'signin' ? 'signup' : 'signin'))
-          setError(null)
-          setNotice(null)
-        }}
-      >
-        {mode === 'signin'
-          ? "No account? Sign up"
-          : 'Already have an account? Sign in'}
-      </button>
     </main>
   )
 }

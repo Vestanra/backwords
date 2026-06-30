@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { Word, WordStatus } from '../../types'
 import { useAuth } from '../../auth/auth-context'
-import { deleteWord, listWords, updateStatus } from './wordsApi'
+import { deleteWord, listWords, updateStatus, updateWord } from './wordsApi'
+import type { WordEdits } from './wordsApi'
 import { SearchSection } from './SearchSection'
 import { WordList } from './WordList'
 import styles from './WordsScreen.module.css'
@@ -43,6 +44,21 @@ export function WordsScreen() {
     }
   }
 
+  async function handleEdit(id: string, edits: WordEdits) {
+    const prev = words
+    // Optimistic, mirroring handleStatusChange: show the edit, roll back on error.
+    setWords((ws) => ws.map((w) => (w.id === id ? { ...w, ...edits } : w)))
+    setBusyId(id)
+    try {
+      await updateWord(id, edits)
+    } catch (err) {
+      setWords(prev)
+      setError(err instanceof Error ? err.message : 'Failed to save changes.')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   async function handleDelete(word: Word) {
     if (!window.confirm(`Delete "${word.term}" from your words?`)) return
     setBusyId(word.id)
@@ -76,6 +92,7 @@ export function WordsScreen() {
         error={error}
         busyId={busyId}
         onStatusChange={handleStatusChange}
+        onEdit={handleEdit}
         onDelete={handleDelete}
       />
     </main>

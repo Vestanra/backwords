@@ -135,7 +135,7 @@ dictionaryapi.dev матчить ціле слово (не префікс), то
 
 ## 🗺️ Роадмеп
 
-### Фаза 1 — Додавання + збереження (поточна)
+### Фаза 1 — Додавання + збереження (✅ завершена)
 
 - [x] Рішення по стеку, базі та моделі даних
 - [x] Створити репозиторій + цей план
@@ -148,10 +148,11 @@ dictionaryapi.dev матчить ціле слово (не префікс), то
 - [x] Адаптив (mobile-first) — базова гумова сітка; детальний дизайн пізніше через Claude design
 - [x] **Створити Supabase-проєкт + застосувати схему `words` + RLS** — зроблено; цикл
       перевірено локально (реєстрація → пошук → збереження). **Confirm email увімкнено.**
-- [~] Деплой на GitHub Pages — GitHub Actions workflow додано (`.github/workflows/deploy.yml`).
-      Лишилось (ручні кроки в UI): Pages source = GitHub Actions; repo secrets
-      `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`; Supabase Site URL = Pages URL.
-      Перший деплой запуститься при merge цієї гілки в `main`.
+- [x] Деплой на GitHub Pages — GitHub Actions (`.github/workflows/deploy.yml`),
+      деплой при push у `main`. Конфіг готовий: Pages source = GitHub Actions;
+      repo secrets `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`; Supabase Site
+      URL = Pages URL. **Живий сайт:** https://vestanra.github.io/backwords/
+      (перевірено: реєстрація → підтвердження email → пошук → збереження).
 
 > ⚠️ **Перед публічним деплоєм:** налаштувати власний **SMTP** — вбудований мейлер Supabase
 > для проду лімітований (листи підтвердження можуть запізнюватись / падати в спам).

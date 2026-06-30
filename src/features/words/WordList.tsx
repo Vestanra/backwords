@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Word, WordStatus } from '../../types'
+import type { WordEdits } from './wordsApi'
 import { WordRow } from './WordRow'
 import styles from './WordList.module.css'
 
@@ -35,10 +36,11 @@ interface Props {
   error: string | null
   busyId: string | null
   onStatusChange: (id: string, status: WordStatus) => void
+  onEdit: (id: string, edits: WordEdits) => void
   onDelete: (word: Word) => void
 }
 
-export function WordList({ words, loading, error, busyId, onStatusChange, onDelete }: Props) {
+export function WordList({ words, loading, error, busyId, onStatusChange, onEdit, onDelete }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
 
   const visible = useMemo(() => words.filter((w) => matches(w, filter)), [words, filter])
@@ -73,6 +75,7 @@ export function WordList({ words, loading, error, busyId, onStatusChange, onDele
               word={w}
               busy={busyId === w.id}
               onStatusChange={onStatusChange}
+              onEdit={onEdit}
               onDelete={onDelete}
             />
           ))}

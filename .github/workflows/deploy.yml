@@ -1,0 +1,58 @@
+name: Deploy to GitHub Pages
+
+# Build the Vite app and publish it to GitHub Pages on every push to main.
+# Also runnable on demand from the Actions tab (workflow_dispatch).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Permissions the official Pages deployment needs: read the repo, write Pages,
+# and request the OIDC token deploy-pages uses to authenticate.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one in-flight deploy at a time; don't cancel a running one (a half-done
+# deploy is worse than a slightly stale one).
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # Supabase values are baked into the bundle at build time (VITE_ prefix).
+      # The anon key is public by design — security comes from RLS, not secrecy —
+      # but we keep both in repo secrets so the URL isn't hardcoded in the repo.
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

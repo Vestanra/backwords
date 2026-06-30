@@ -8,8 +8,38 @@ personal dictionary. Later: training & spaced-repetition modes.
 
 ## Stack
 
-React 19 · Vite · TypeScript · Supabase (Auth + Postgres + Row Level Security) ·
-[Free Dictionary API](https://dictionaryapi.dev). Deployed to GitHub Pages.
+React 19 · Vite · TypeScript · Supabase (Auth + Postgres + Row Level Security +
+Edge Functions) · [Free Dictionary API](https://dictionaryapi.dev) ·
+Google Gemini (Ukrainian translation). Deployed to GitHub Pages.
+
+## AI translation (Gemini via Edge Function)
+
+When a word is looked up, a Ukrainian translation is suggested by Google Gemini.
+The call does **not** go directly from the browser — the Gemini API key would be
+exposed in the client bundle. Instead it goes through a Supabase Edge Function
+(`supabase/functions/translate`) that holds the key as a server-side secret:
+
+```
+browser → Edge Function (key lives here) → Gemini → translation
+```
+
+The function also requires a signed-in user (`getUser()`), so the public anon
+key alone cannot call it. Gemini sees the word *and its definition*, which lets
+it pick the right sense for polysemous words and phrasal verbs (e.g. "pass out"
+→ «знепритомніти», not a literal word-by-word guess). The suggestion is editable
+before saving, and any failure (quota, network) just leaves the field blank.
+
+### Deploying the function
+
+```bash
+npx supabase login
+npx supabase link --project-ref <your-project-ref>
+npx supabase secrets set GEMINI_API_KEY=<your-gemini-key>
+npx supabase functions deploy translate --no-verify-jwt
+```
+
+`--no-verify-jwt` lets the function handle CORS and do its own auth check; it is
+still protected by the `getUser()` gate inside.
 
 ## Roadmap & decisions
 

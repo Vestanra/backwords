@@ -24,6 +24,8 @@ export async function addWord(preview: WordPreview): Promise<Word> {
       ipa: preview.ipa,
       audio_url: preview.audioUrl,
       definitions: preview.meanings,
+      translation: preview.translation,
+      note: preview.note,
     })
     .select()
     .single()
@@ -50,6 +52,17 @@ export async function listWords(): Promise<Word[]> {
 
 export async function updateStatus(id: string, status: WordStatus): Promise<void> {
   const { error } = await supabase.from('words').update({ status }).eq('id', id)
+  if (error) throw error
+}
+
+/** User-editable fields of a saved word. The dictionary data stays read-only. */
+export interface WordEdits {
+  translation: string | null
+  note: string | null
+}
+
+export async function updateWord(id: string, edits: WordEdits): Promise<void> {
+  const { error } = await supabase.from('words').update(edits).eq('id', id)
   if (error) throw error
 }
 

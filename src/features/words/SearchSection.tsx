@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Word, WordPreview } from '../../types'
 import { lookup } from '../../lib/dictionary'
+import { translate } from '../../lib/translate'
 import { addWord, DuplicateWordError } from './wordsApi'
 import { AudioButton } from './AudioButton'
 import styles from './SearchSection.module.css'
@@ -21,11 +22,16 @@ interface Props {
 export function SearchSection({ onAdded }: Props) {
   const [term, setTerm] = useState('')
   const [state, setState] = useState<LookupState>({ kind: 'idle' })
+  // Editable fields for the preview card, seeded from the auto-translation.
+  const [translation, setTranslation] = useState('')
+  const [note, setNote] = useState('')
   const [adding, setAdding] = useState(false)
   const [addMessage, setAddMessage] = useState<string | null>(null)
 
   // Lookup on submit (not on every keystroke): dictionaryapi.dev matches whole
-  // words, so per-letter lookups would mostly 404 and waste requests.
+  // words, so per-letter lookups would mostly 404 and waste requests. The
+  // translation runs after lookup (it uses the definition for context) and is
+  // best-effort — it never fails the lookup.
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const trimmed = term.trim()
@@ -34,7 +40,15 @@ export function SearchSection({ onAdded }: Props) {
     setState({ kind: 'loading' })
     try {
       const preview = await lookup(trimmed)
-      setState(preview ? { kind: 'found', preview } : { kind: 'notfound', term: trimmed })
+      if (!preview) {
+        setState({ kind: 'notfound', term: trimmed })
+        return
+      }
+      const firstDef = preview.meanings[0]?.definitions[0]?.definition
+      const suggestion = await translate(preview.term, firstDef)
+      setTranslation(suggestion ?? '')
+      setNote('')
+      setState({ kind: 'found', preview })
     } catch (err) {
       setState({ kind: 'error', message: err instanceof Error ? err.message : 'Lookup failed.' })
     }
@@ -44,7 +58,11 @@ export function SearchSection({ onAdded }: Props) {
     setAdding(true)
     setAddMessage(null)
     try {
-      const word = await addWord(preview)
+      const word = await addWord({
+        ...preview,
+        translation: translation.trim() || null,
+        note: note.trim() || null,
+      })
       onAdded(word)
       setAddMessage(`Added "${word.term}".`)
       setState({ kind: 'idle' })
@@ -91,6 +109,28 @@ export function SearchSection({ onAdded }: Props) {
             {state.preview.ipa && <span className={styles.ipa}>{state.preview.ipa}</span>}
             <AudioButton url={state.preview.audioUrl} />
           </header>
+
+          <div className={styles.field}>
+            <label htmlFor="translation">Translation (uk)</label>
+            <input
+              id="translation"
+              type="text"
+              value={translation}
+              onChange={(e) => setTranslation(e.target.value)}
+              placeholder="Auto-suggested — edit if needed"
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label htmlFor="note">Note</label>
+            <textarea
+              id="note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Your own meaning, example, or mnemonic (optional)"
+              rows={2}
+            />
+          </div>
 
           {state.preview.meanings.map((m, i) => (
             <div key={i} className={styles.meaning}>
